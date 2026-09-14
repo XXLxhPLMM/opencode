@@ -566,13 +566,7 @@ export function CurrentContextToolGroup(props: {
         return groups
       }
       const previous = groups.at(-1)
-      if (
-        tool.name === "patch" &&
-        tool.state.status !== "error" &&
-        Array.isArray(previous) &&
-        previous?.[0]?.name === "patch" &&
-        previous[0].state.status !== "error"
-      ) {
+      if (isFileChangeTool(tool) && Array.isArray(previous) && previous[0] && isFileChangeTool(previous[0])) {
         previous.push(tool)
         return groups
       }
@@ -595,7 +589,7 @@ export function CurrentContextToolGroup(props: {
   const patchKeys = createMemo(() => {
     const keys = new Map<SessionMessageAssistantTool, string>()
     items().forEach((item) => {
-      if (!Array.isArray(item) || item[0]?.name !== "patch" || item[0].state.status === "error") return
+      if (!Array.isArray(item) || !item[0] || !isFileChangeTool(item[0])) return
       const key = props.patchGroupKey?.(item) ?? item[0].id
       item.forEach((tool) => keys.set(tool, key))
     })
@@ -715,7 +709,7 @@ export function CurrentContextToolGroup(props: {
                               when={tool().name === "skill" && group().length > 1 && skills().length === group().length}
                               fallback={
                                 <Show
-                                  when={tool().name === "patch" && tool().state.status !== "error"}
+                                  when={isFileChangeTool(tool())}
                                   fallback={
                                     <ToolDisplay
                                       id={tool().id}
@@ -910,6 +904,10 @@ export function CurrentFileToolGroup(props: {
       />
     </div>
   )
+}
+
+function isFileChangeTool(tool: SessionMessageAssistantTool) {
+  return tool.state.status !== "error" && (tool.name === "edit" || tool.name === "write" || tool.name === "patch")
 }
 
 function samePatchFile(a: unknown, b: unknown) {
